@@ -1,0 +1,4 @@
+*.docx
+**/target
+**/debug
+Cargo.lock
