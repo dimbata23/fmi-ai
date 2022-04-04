@@ -1,3 +1,4 @@
+use rand::{Rng, prelude::SliceRandom};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
@@ -12,21 +13,87 @@ lazy_static! {
     ]);
 }
 
-fn fitness(ind: &str) -> u32 {
+const ISIZE: usize = 6;
+type Individual = [char; ISIZE];
+
+fn fitness(ind: &Individual) -> u32 {
     let mut res = 0;
-    for i in 0..(ind.len() - 1) {
-        let curr    = &ind.chars().nth( i ).unwrap();
-        let next    = &ind.chars().nth( i+1 ).unwrap();
+    for i in 0..(ISIZE - 1) {
+        let curr    = &ind[i];
+        let next    = &ind[i + 1];
         res += GRAPH[ curr ][ next ];
     }
 
-    let last    = &ind.chars().last().unwrap();
-    let first   = &ind.chars().next().unwrap();
+    let last    = ind.last().unwrap();
+    let first   = ind.first().unwrap();
     res + GRAPH[ last ][ first ]
 }
 
+fn reproduce(lhs: &Individual, rhs: &Individual) -> (Individual, Individual) {
+    let mut rng     = rand::thread_rng();
+    let     pos     = rng.gen_range( 1..ISIZE-1 );
+
+    let mut lres    = lhs.clone();
+    let mut rres    = rhs.clone();
+
+    let (_, lcross) = lres.split_at_mut( pos );
+    let (_, rcross) = rres.split_at_mut( pos );
+
+    lcross.iter_mut()
+        .zip( rcross )
+        .for_each(
+            |(lch, rch)| std::mem::swap( lch, rch )
+        );
+
+    (make_unique( lres ), make_unique( rres ))
+}
+
 fn main() {
-    
-    println!("{}", fitness("ABCDEF"));
+    let mut rng     = rand::thread_rng();
+    let     range   = ['A', 'B', 'C', 'D', 'E', 'F'];
+    let mut ind1    = range.clone();
+    ind1.shuffle(&mut rng);
+    let mut ind2    = range.clone();
+    ind2.shuffle(&mut rng);
+
+    println!("{:?} + {:?}", ind1, ind2);
+
+    println!("{:?}", fitness(&ind1));
+    println!("{:?}", fitness(&ind2));
+    println!("{:?}", reproduce(&ind1, &ind2));
 
 }
+
+
+
+/// ---------------------------
+/// ---- Utility functions ----
+/// ---------------------------
+
+fn make_unique(ind: Individual) -> Individual {
+    let     range       = ['A', 'B', 'C', 'D', 'E', 'F'];
+    let mut arr_used    = [false; ISIZE];
+    let mut res_ind     = ind.clone();
+
+    res_ind.iter_mut()
+        .for_each(|ch| {
+            let i = *ch as usize - 'A' as usize;
+            if arr_used[ i ] {
+                for i in 0..ISIZE {
+                    if !arr_used[ i ] {
+                        arr_used[ i ] = true;
+                        *ch = range[ i ];
+                        break;
+                    }
+                }
+            }
+            else {
+                arr_used[ i ] = true;
+            }
+        });
+
+    res_ind
+}
+
+#[cfg(test)]
+mod tests;

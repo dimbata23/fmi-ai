@@ -2,4 +2,5 @@
 *.docx
 **/target
 **/debug
+**/.vscode
 Cargo.lock
