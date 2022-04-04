@@ -2,6 +2,8 @@ use rand::{Rng, prelude::SliceRandom};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, BTreeSet};
 
+// TODO: impl struct Individual for BTreeSet
+
 fn main() {
     let res_ind = genetic_algorithm( 1000, fitness ).unwrap();
     println!("{:?} with road len: {}", res_ind, fitness( &res_ind ));
@@ -67,9 +69,10 @@ fn reproduce(lhs: &Individual, rhs: &Individual) -> (Individual, Individual) {
 }
 
 fn mutate(ind: &Individual) -> Individual {
-    let mut rng         = rand::thread_rng();
+    let mut rng     = rand::thread_rng();
     let mut pos_i   = rng.gen_range( 0..ISIZE );
     let mut pos_j   = rng.gen_range( 0..ISIZE );
+    let mut res_ind = ind.clone();
 
     if pos_i == pos_j {
         if pos_i > 0 {
@@ -83,9 +86,7 @@ fn mutate(ind: &Individual) -> Individual {
         std::mem::swap( &mut pos_i, &mut pos_j );
     }
 
-    let mut res_ind = ind.clone();
     let (lhs, rhs)  = res_ind.split_at_mut( pos_j );
-    
     std::mem::swap( &mut lhs[ pos_i ], &mut rhs[ 0 ] );
 
     res_ind

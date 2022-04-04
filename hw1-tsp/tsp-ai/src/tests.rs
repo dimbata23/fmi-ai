@@ -16,7 +16,7 @@ fn test_reproduce_correctness() {
     let     range       = ['A', 'B', 'C', 'D', 'E', 'F'];
     let     range_vec   = range.iter().collect::<Vec<_>>();
 
-    for _ in 0..100000 {
+    for _ in 0..10000 {
         let mut ind1        = range.clone();
         let mut ind2        = range.clone();
         ind1.shuffle( &mut rng );
@@ -29,5 +29,24 @@ fn test_reproduce_correctness() {
         vec2.sort();
         assert_eq!( &vec1, &range_vec );
         assert_eq!( &vec2, &range_vec );
+    }
+}
+
+#[test]
+fn test_mutate_correctness() {
+    let mut rng         = rand::thread_rng();
+    let     range       = ['A', 'B', 'C', 'D', 'E', 'F'];
+    let     range_vec   = range.iter().collect::<Vec<_>>();
+
+    for _ in 0..10000 {
+        let mut ind     = range.clone();
+        ind.shuffle( &mut rng );
+        
+        let     ind_mut = mutate( &ind );
+        let     vec_ind = ind.iter().collect::<Vec<_>>();
+        let mut vec_mut = ind_mut.iter().collect::<Vec<_>>();
+        assert_ne!( &vec_mut, &vec_ind );
+        vec_mut.sort();
+        assert_eq!( &vec_mut, &range_vec );
     }
 }
