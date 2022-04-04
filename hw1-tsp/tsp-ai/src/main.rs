@@ -1,6 +1,11 @@
 use rand::{Rng, prelude::SliceRandom};
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
+
+fn main() {
+    let res_ind = genetic_algorithm( 1000, fitness ).unwrap();
+    println!("{:?} with road len: {}", res_ind, fitness( &res_ind ));
+}
 
 lazy_static! {
     static ref GRAPH: HashMap<char, HashMap<char, u32>> = HashMap::from([
@@ -48,20 +53,44 @@ fn reproduce(lhs: &Individual, rhs: &Individual) -> (Individual, Individual) {
     (make_unique( lres ), make_unique( rres ))
 }
 
-fn main() {
-    let mut rng     = rand::thread_rng();
-    let     range   = ['A', 'B', 'C', 'D', 'E', 'F'];
-    let mut ind1    = range.clone();
-    ind1.shuffle(&mut rng);
-    let mut ind2    = range.clone();
-    ind2.shuffle(&mut rng);
+fn genetic_algorithm(init_size: usize, fitness_func: fn(&Individual) -> u32) -> Option<Individual> {
+    let     range       = ['A', 'B', 'C', 'D', 'E', 'F'];
+    let mut rng         = rand::thread_rng();
+    let mut population  = BTreeSet::new();
+    for _ in 0..init_size {
+        let mut ind     = range.clone();
+        ind.shuffle( &mut rng );
+        population.insert( ind );
+    }
 
-    println!("{:?} + {:?}", ind1, ind2);
+    // TODO: replace with real end condition
+    for _ in 0..100 {
+        let mut new_population  = BTreeSet::new();
 
-    println!("{:?}", fitness(&ind1));
-    println!("{:?}", fitness(&ind2));
-    println!("{:?}", reproduce(&ind1, &ind2));
+        for _ in &population {
+            let par_i   = rng.gen_range( 0..population.len() );
+            let par1    = population.iter().skip( par_i ).next().unwrap();
+            let par_j   = rng.gen_range( 0..population.len() );
+            let par2    = population.iter().skip( par_j ).next().unwrap();
 
+            let (child1, child2)    = reproduce( &par1, &par2 );
+            // if rng.gen_bool( 0.01 ) {
+            //     child1  = mutate( &child1 );
+            // }
+
+            // if rng.gen_bool( 0.01 ) {
+            //     child2  = mutate( &child2 );
+            // }
+            new_population.insert( child1 );
+            new_population.insert( child2 );
+        }
+
+        population  = new_population;
+    }
+
+    println!("{:?}", population.iter().take( 10 ).map( fitness_func ).collect::<Vec<_>>() );
+
+    population.into_iter().min_by( |i, j| fitness_func( i ).cmp( &fitness_func( j ) ) )
 }
 
 
