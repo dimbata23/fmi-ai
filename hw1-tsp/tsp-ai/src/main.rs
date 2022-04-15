@@ -1,11 +1,10 @@
-use rand::{Rng, prelude::SliceRandom};
+use std::mem::swap;
 use lazy_static::lazy_static;
-use std::collections::{HashMap, BTreeSet};
-
-// TODO: impl struct Individual for BTreeSet
+use rand::{Rng, prelude::SliceRandom};
+use std::collections::{HashMap, BTreeSet, VecDeque};
 
 fn main() {
-    let res_ind = genetic_algorithm( 1000, fitness ).unwrap();
+    let res_ind = genetic_algorithm( 100, fitness ).unwrap();
     println!("{:?} with road len: {}", res_ind, fitness( &res_ind ));
 }
 
@@ -19,8 +18,12 @@ fn genetic_algorithm(init_size: usize, fitness_func: fn(&Individual) -> u32) -> 
         population.insert( ind );
     }
 
-    // TODO: replace with real end condition
-    for _ in 0..100 {
+    let mut que_bests   = VecDeque::from( [0; 10] );
+    let mut avg         = 0f64;
+    let mut last_avg    = 1f64;
+    let mut pop_cnt     = 0usize;
+    while avg != last_avg {
+        last_avg        = avg;
         let mut new_population  = BTreeSet::new();
 
         for _ in &population {
@@ -42,11 +45,28 @@ fn genetic_algorithm(init_size: usize, fitness_func: fn(&Individual) -> u32) -> 
         }
 
         population  = new_population;
+
+        que_bests.pop_front();
+        population.iter()
+            .min_by( 
+                |i, j| fitness_func( i ).cmp( &fitness_func( j ) )
+            )
+            .and_then(
+                |ind| Some(que_bests.push_back( fitness_func( ind ) ))
+            );
+
+        avg     = que_bests.iter().sum::<u32>() as f64 / que_bests.len() as f64;
+        pop_cnt += 1;
     }
 
+    println!("Genetic algorith stopped after {pop_cnt} populations.");
     println!("{:?}", population.iter().take( 10 ).map( fitness_func ).collect::<Vec<_>>() );
 
-    population.into_iter().min_by( |i, j| fitness_func( i ).cmp( &fitness_func( j ) ) )
+    population
+        .into_iter()
+        .min_by( 
+            |i, j| fitness_func( i ).cmp( &fitness_func( j ) )
+        )
 }
 
 fn reproduce(lhs: &Individual, rhs: &Individual) -> (Individual, Individual) {
@@ -62,7 +82,7 @@ fn reproduce(lhs: &Individual, rhs: &Individual) -> (Individual, Individual) {
     lcross.iter_mut()
         .zip( rcross )
         .for_each(
-            |(lch, rch)| std::mem::swap( lch, rch )
+            |(lch, rch)| swap( lch, rch )
         );
 
     (make_unique( lres ), make_unique( rres ))
@@ -83,11 +103,11 @@ fn mutate(ind: &Individual) -> Individual {
     }
 
     if pos_i > pos_j {
-        std::mem::swap( &mut pos_i, &mut pos_j );
+        swap( &mut pos_i, &mut pos_j );
     }
 
     let (lhs, rhs)  = res_ind.split_at_mut( pos_j );
-    std::mem::swap( &mut lhs[ pos_i ], &mut rhs[ 0 ] );
+    swap( &mut lhs[ pos_i ], &mut rhs[ 0 ] );
 
     res_ind
 }
@@ -149,6 +169,7 @@ fn make_unique(ind: Individual) -> Individual {
 
     res_ind
 }
+
 
 #[cfg(test)]
 mod tests;
