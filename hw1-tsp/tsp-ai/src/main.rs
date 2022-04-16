@@ -1,11 +1,11 @@
-use std::mem::swap;
+use std::{mem::swap, cmp::Ordering};
 use lazy_static::lazy_static;
 use rand::{Rng, prelude::SliceRandom};
 use std::collections::{HashMap, BTreeSet, VecDeque};
 
 fn main() {
-    let res_ind = genetic_algorithm( 100, fitness ).unwrap();
-    println!("{:?} with road len: {}", res_ind, fitness( &res_ind ));
+    let res_ind = genetic_algorithm( 5, fitness ).unwrap();
+    println!("{:?} with road length: {}", res_ind, fitness( &res_ind ));
 }
 
 fn genetic_algorithm(init_size: usize, fitness_func: fn(&Individual) -> u32) -> Option<Individual> {
@@ -18,10 +18,10 @@ fn genetic_algorithm(init_size: usize, fitness_func: fn(&Individual) -> u32) -> 
         population.insert( ind );
     }
 
-    let mut que_bests   = VecDeque::from( [0; 10] );
+    let mut que_bests   = VecDeque::from( [0; 6] );
     let mut avg         = 0f64;
     let mut last_avg    = 1f64;
-    let mut pop_cnt     = 0usize;
+    let mut gen_cnt     = 0usize;
     while avg != last_avg {
         last_avg        = avg;
         let mut new_population  = BTreeSet::new();
@@ -56,17 +56,16 @@ fn genetic_algorithm(init_size: usize, fitness_func: fn(&Individual) -> u32) -> 
             );
 
         avg     = que_bests.iter().sum::<u32>() as f64 / que_bests.len() as f64;
-        pop_cnt += 1;
+        gen_cnt += 1;
     }
 
-    println!("Genetic algorith stopped after {pop_cnt} populations.");
-    println!("{:?}", population.iter().take( 10 ).map( fitness_func ).collect::<Vec<_>>() );
+    let mut best = population.into_iter().collect::<Vec<_>>();
+    best.sort_by( cmp_by_fitness );
 
-    population
-        .into_iter()
-        .min_by( 
-            |i, j| fitness_func( i ).cmp( &fitness_func( j ) )
-        )
+    println!("Genetic algorithm stopped after {gen_cnt} generations.");
+    println!("{:?}", best.iter().take( 10 ).map( fitness_func ).collect::<Vec<_>>() );
+
+    best.into_iter().next()
 }
 
 fn reproduce(lhs: &Individual, rhs: &Individual) -> (Individual, Individual) {
@@ -170,6 +169,9 @@ fn make_unique(ind: Individual) -> Individual {
     res_ind
 }
 
+fn cmp_by_fitness(lhs: &Individual, rhs: &Individual) -> Ordering {
+    fitness( lhs ).cmp( &fitness( rhs ) )
+}
 
 #[cfg(test)]
 mod tests;
